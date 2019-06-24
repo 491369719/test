@@ -15,6 +15,21 @@
 using namespace cv;
 using namespace std;
 
+
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+
+}
+
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
 QImage cvMat2QImage(const cv::Mat& mat)
 {
     // 8-bits unsigned, NO. OF CHANNELS = 1
@@ -59,6 +74,7 @@ QImage cvMat2QImage(const cv::Mat& mat)
         return QImage();
     }
 }
+
 int _System(const char * cmd, char *pRetMsg, int msg_len)
 {
     FILE * fp;
@@ -127,16 +143,16 @@ void MainWindow::fun(QString path)
     src3=src2(Rect((rect.center.x-(rect.size.width/2)),(rect.center.y-(rect.size.height/2)),rect.size.width,rect.size.height));
     imshow("sss",src3);
     cvtColor(src3, src3, CV_BGR2HSV);
-     inRange(src3, Scalar(0, 0, 130), Scalar(180, 130, 255), src3);
-     Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
-     morphologyEx(src3, src3, MORPH_OPEN, element);
+    inRange(src3, Scalar(0, 0, 130), Scalar(180, 130, 255), src3);
+    Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
+    morphologyEx(src3, src3, MORPH_OPEN, element);
     subtract(Scalar(255,255,255),src3,src3);
     imshow( "Display window3", src3 );
     QImage aaa=cvMat2QImage(src3);
     aaa.save(QString("%1\67.jpg").arg(QCoreApplication::applicationDirPath()));//QImage保存方法
     char *cmd = "tesseract E:/Project/qt/build-Test2-Desktop_Qt_5_12_3_MinGW_64_bit-Debug/debug.jpg stdout -l chi_sim";
     char a8Result[128] = { 0 };
-        int ret = 0;
+    int ret = 0;
     ret = _System(cmd, a8Result, sizeof(a8Result));
     printf("%s",a8Result);
     ui->label_4->setScaledContents(true);
@@ -145,38 +161,22 @@ void MainWindow::fun(QString path)
     ui->label_6->setText(s1);
 }
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
-{
-    ui->setupUi(this);
-
-}
-
-
-MainWindow::~MainWindow()
-{
-    delete ui;
-}
-
-
-
 void MainWindow::on_pushButton_clicked()
 {
 
     QString path = QFileDialog::getOpenFileName(this, tr("选择图片"), ".", tr("Image Files(*.jpg *.png)"));
     QImage* img=new QImage;
-            if(! ( img->load(path) ) ) //加载图像
-            {
-                QMessageBox::information(this,
-                                         tr("打开图像失败"),
-                                         tr("打开图像失败!"));
-                delete img;
-                return;
-            }
-            ui->yuantu->setScaledContents(true);
-           ui->yuantu->setPixmap(QPixmap::fromImage(*img));
-           fun(path);
+		if(! ( img->load(path) ) ) //加载图像
+		{
+			QMessageBox::information(this,
+										tr("打开图像失败"),
+										tr("打开图像失败!"));
+			delete img;
+			return;
+		}
+		ui->yuantu->setScaledContents(true);
+		ui->yuantu->setPixmap(QPixmap::fromImage(*img));
+		fun(path);
 
 
 }
