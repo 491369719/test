@@ -11,24 +11,10 @@
 #include <QImage>
 #include <QTextCodec>
 #include <opencv2/highgui/highgui_c.h>
+#include <time.h>
 #pragma execution_character_set("utf-8")
 using namespace cv;
 using namespace std;
-
-
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
-{
-    ui->setupUi(this);
-
-}
-
-
-MainWindow::~MainWindow()
-{
-    delete ui;
-}
 
 QImage cvMat2QImage(const cv::Mat& mat)
 {
@@ -74,7 +60,6 @@ QImage cvMat2QImage(const cv::Mat& mat)
         return QImage();
     }
 }
-
 int _System(const char * cmd, char *pRetMsg, int msg_len)
 {
     FILE * fp;
@@ -95,7 +80,6 @@ int _System(const char * cmd, char *pRetMsg, int msg_len)
         memset(pRetMsg, 0, msg_len);
 
         while (fgets(pRetMsg, msg_len, fp) != NULL&&pRetMsg[0]==' ');
-        printf("%s", pRetMsg);
         if ((res = _pclose(fp)) == -1)
         {
             printf("close popenerror!\n");
@@ -110,73 +94,78 @@ void MainWindow::fun(QString path)
 {
     double scale = 0.2;
     int max=0;
+    //int start=clock();
+    char *cmd = "tesseract E:/Project/qt/build-Test2-Desktop_Qt_5_12_3_MinGW_64_bit-Debug/debug.jpg stdout -l chi_sim";
+    char a8Result[128] = { 0 };
+    int ret = 0;
     std::string strpath = path.toLocal8Bit().toStdString();
-    Mat src,src2,src3,binary_output;
+    Mat src,src2,src3,srcc,binary_output,rot_mat,element;
+    RotatedRect rect;
     vector<Vec4i> hierarcy;
     vector<vector<Point>> contours;
     vector<Rect> boundRect(contours.size());  //定义外接矩形集合
     vector<RotatedRect> box(contours.size()); //定义最小外接矩形集合
     src=imread(strpath,1);
     src.copyTo(src2);
-    Mat srcc = Mat::zeros(src.size(), CV_8UC1);
+    srcc = Mat::zeros(src.size(), CV_8UC1);
     cvtColor(src, binary_output, CV_BGR2HSV);
     inRange(binary_output, Scalar(80, 160, 103), Scalar(180, 255, 255), binary_output);
     findContours(binary_output, contours, hierarcy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
     for (int i = 0; i<contours.size(); i++)
-    {
-        //绘制轮廓
-        if(contourArea(contours[i])>=contourArea(contours[max])){
+        if(contourArea(contours[i])>=contourArea(contours[max]))
             max=i;
-        }
-    }
-    drawContours(srcc, contours, max, Scalar(255), 1, 8, hierarcy);
-    RotatedRect rect = minAreaRect(contours[max]);
-        Point2f P[4];
-        rect.points(P);
-    for (int j = 0; j <= 3; j++){
-        line(binary_output, P[j], P[(j + 1) % 4], Scalar(0,0,255), 1);
-        line(srcc, P[j], P[(j + 1) % 4], Scalar(111), 2);
-    }
+    rect = minAreaRect(contours[max]);
     Size dst_sz(src.cols, src.rows);
-    cv::Mat rot_mat = cv::getRotationMatrix2D(rect.center, rect.angle, 1.0);
-    cv::warpAffine(src2, src2, rot_mat, dst_sz);
+    rot_mat = cv::getRotationMatrix2D(rect.center, rect.angle, 1.0);
+    warpAffine(src2, src2, rot_mat, dst_sz);
     src3=src2(Rect((rect.center.x-(rect.size.width/2)),(rect.center.y-(rect.size.height/2)),rect.size.width,rect.size.height));
-    imshow("sss",src3);
     cvtColor(src3, src3, CV_BGR2HSV);
     inRange(src3, Scalar(0, 0, 130), Scalar(180, 130, 255), src3);
-    Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
+    element = getStructuringElement(MORPH_RECT, Size(3, 3));
     morphologyEx(src3, src3, MORPH_OPEN, element);
     subtract(Scalar(255,255,255),src3,src3);
-    imshow( "Display window3", src3 );
+    //printf("%d\n",clock()-start);
     QImage aaa=cvMat2QImage(src3);
     aaa.save(QString("%1\67.jpg").arg(QCoreApplication::applicationDirPath()));//QImage保存方法
-    char *cmd = "tesseract E:/Project/qt/build-Test2-Desktop_Qt_5_12_3_MinGW_64_bit-Debug/debug.jpg stdout -l chi_sim";
-    char a8Result[128] = { 0 };
-    int ret = 0;
     ret = _System(cmd, a8Result, sizeof(a8Result));
-    printf("%s",a8Result);
     ui->label_4->setScaledContents(true);
     ui->label_4->setPixmap(QPixmap::fromImage(aaa));
     QString s1 =QString::fromUtf8(a8Result);
     ui->label_6->setText(s1);
 }
 
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+
+}
+
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+
+
 void MainWindow::on_pushButton_clicked()
 {
 
     QString path = QFileDialog::getOpenFileName(this, tr("选择图片"), ".", tr("Image Files(*.jpg *.png)"));
     QImage* img=new QImage;
-		if(! ( img->load(path) ) ) //加载图像
-		{
-			QMessageBox::information(this,
-										tr("打开图像失败"),
-										tr("打开图像失败!"));
-			delete img;
-			return;
-		}
-		ui->yuantu->setScaledContents(true);
-		ui->yuantu->setPixmap(QPixmap::fromImage(*img));
-		fun(path);
+            if(! ( img->load(path) ) ) //加载图像
+            {
+                QMessageBox::information(this,
+                                         tr("打开图像失败"),
+                                         tr("打开图像失败!"));
+                delete img;
+                return;
+            }
+            ui->yuantu->setScaledContents(true);
+           ui->yuantu->setPixmap(QPixmap::fromImage(*img));
+           fun(path);
 
 
 }
